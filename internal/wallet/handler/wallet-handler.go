@@ -2,20 +2,24 @@ package handler
 
 import (
 	"context"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"time"
 	"wallet-service/internal/dto"
+	"wallet-service/internal/validation"
 	"wallet-service/internal/wallet/service"
 )
 
 type WalletHandler struct {
-	svc *service.WalletService
+	svc      *service.WalletService
+	validate *validator.Validate
 }
 
 func NewWalletHandler(svc *service.WalletService) *WalletHandler {
 	return &WalletHandler{
-		svc: svc,
+		svc:      svc,
+		validate: validator.New(),
 	}
 }
 
@@ -39,7 +43,15 @@ func (h *WalletHandler) GetWalletBalance(c *fiber.Ctx) error {
 func (h *WalletHandler) UpdateWalletBalance(c *fiber.Ctx) error {
 	var req dto.WalletOperationRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid request body.",
+		})
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"errors": validation.FormatValidationErrors(err),
+		})
 	}
 
 	ctx, cancel := context.WithTimeout(c.UserContext(), 10*time.Second)
