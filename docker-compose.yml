@@ -11,13 +11,15 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U wallet_user -d wallet_db" ]
+      test: ["CMD-SHELL", "pg_isready -U wallet_user -d wallet_db"]
       interval: 2s
       timeout: 2s
       retries: 10
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: wallet-service
     env_file:
       - config.env
@@ -27,5 +29,15 @@ services:
       postgres:
         condition: service_healthy
 
+  app-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: wallet-service-test
+    env_file:
+      - config.env
+    depends_on:
+      postgres:
+        condition: service_healthy
 volumes:
   postgres_data:

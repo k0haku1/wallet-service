@@ -39,7 +39,7 @@ func (s *WalletService) UpdateWalletBalance(ctx context.Context, req dto.WalletO
 	}
 	var op *model.Operation
 	var err error
-	maxRetries := 3
+	maxRetries := 10
 	for i := 0; i < maxRetries; i++ {
 
 		err = s.repo.WithTx(ctx, func(txRepo repository.WalletRepository) error {
@@ -77,7 +77,7 @@ func (s *WalletService) UpdateWalletBalance(ctx context.Context, req dto.WalletO
 			return txRepo.SaveOperationTx(ctx, op)
 		})
 
-		if err == nil || !isDeadlock(err) {
+		if err == nil || !isDeadlock(err) || isSerializationFailure(err) {
 			break
 		}
 		time.Sleep(time.Millisecond * time.Duration(50*(i+1)))
@@ -90,6 +90,14 @@ func isDeadlock(err error) bool {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		return pgErr.Code == "40P01"
+	}
+	return false
+}
+
+func isSerializationFailure(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "40001"
 	}
 	return false
 }
