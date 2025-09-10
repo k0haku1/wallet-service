@@ -23,10 +23,6 @@ var testDB *gorm.DB
 func TestMain(m *testing.M) {
 	cfg := config.LoadConfig()
 	testDB = db.NewPostgres(cfg.DBUrl)
-
-	testDB.Exec("TRUNCATE TABLE operations CASCADE")
-	testDB.Exec("TRUNCATE TABLE wallets CASCADE")
-
 	m.Run()
 }
 
